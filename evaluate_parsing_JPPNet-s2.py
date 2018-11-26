@@ -14,18 +14,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils import *
 from LIP_model import *
+import argparse
 
 N_CLASSES = 20
 INPUT_SIZE = (384, 384)
-DATA_DIRECTORY = './datasets/examples'
-DATA_LIST_PATH = './datasets/examples/list/val.txt'
-NUM_STEPS = 6 # Number of images in the validation set.
+# DATA_DIRECTORY = './datasets/examples'
+# DATA_LIST_PATH = './datasets/examples/list/val.txt'
+DATA_DIRECTORY = './datasets/outfit-transfer'
+DATA_LIST_PATH = './datasets/outfit-transfer/tina_list.txt'
 RESTORE_FROM = './checkpoint/JPPNet-s2'
 OUTPUT_DIR = './output/parsing/val'
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 def main():
+    parser = argparse.ArgumentParser(description="Evaluate parsing")
+    parser.add_argument("-d", "--data_directory", help="Directory containing images.", default=DATA_DIRECTORY)
+    parser.add_argument("-l", "--data_list", help=".txt file containing list of images to evaluate.", default=DATA_LIST_PATH)
+    parser.add_argument("-o", "--output_directory", help="Directory containing images.", default=OUTPUT_DIR)
+    parser.add_argument("-a", "--all_steps", action="store_true", help="Run all images instead of number of steps")
+    parser.add_argument("-s", "--steps", type=int, help="Number of steps to run, instead of the whole directory")
+
+    args = parser.parse_args()
+
+
+
     """Create the model and start the evaluation process."""
     
     # Create queue coordinator.
@@ -33,7 +46,7 @@ def main():
     h, w = INPUT_SIZE
     # Load reader.
     with tf.name_scope("create_inputs"):
-        reader = ImageReader(DATA_DIRECTORY, DATA_LIST_PATH, None, False, False, coord)
+        reader = ImageReader(args.data_directory, args.data_list, None, False, False, coord)
         image = reader.image
         image_rev = tf.reverse(image, tf.stack([1]))
         image_list = reader.image_list
@@ -112,8 +125,18 @@ def main():
 
     
     raw_output_all = tf.reduce_mean(tf.stack([head_output, tail_output_rev]), axis=0)
-    raw_output_all = tf.expand_dims(raw_output_all, dim=0)
-    raw_output_all = tf.argmax(raw_output_all, dimension=3)
+    before_argmax = tf.expand_dims(raw_output_all, dim=0)
+
+    # take out the background channel
+    seg_18 = before_argmax[:, :, :, 1:]
+    # convert to probability maps
+    seg_18_prob_map = tf.nn.softmax(seg_18, axis=3)
+
+
+    # AJ: take the argmax of the channel dimension, to determine which clothing 
+    # label has the highest probabilitye
+    raw_output_all = tf.argmax(before_argmax, dimension=3)
+    # AJ: add an extra dim just before the last one. not sure why 
     pred_all = tf.expand_dims(raw_output_all, dim=3) # Create 4-d tensor.
 
     # Which variables to load.
@@ -140,18 +163,29 @@ def main():
 
 
     # Iterate over training steps.
-    for step in range(NUM_STEPS):
-        parsing_ = sess.run(pred_all)
-        if step % 100 == 0:
-            print('step {:d}'.format(step))
-            print (image_list[step])
+    num_steps = args.steps if args.steps else len(image_list) # added by AJ
+    os.makedirs(args.output_directory, exist_ok=True)
+    for step in range(num_steps):
+        print('step {:d}'.format(step))
+        print(image_list[step], end=" ==> ")
+
+        seg_pmap = sess.run(seg_18_prob_map)
+        # print("seg_pmap shape:", seg_pmap.shape)
+        # print("seg_pmap:", seg_pmap)
+
         img_split = image_list[step].split('/')
         img_id = img_split[-1][:-4]
 
-        msk = decode_labels(parsing_, num_classes=N_CLASSES)
-        parsing_im = Image.fromarray(msk[0])
-        parsing_im.save('{}/{}_vis.png'.format(OUTPUT_DIR, img_id))
-        cv2.imwrite('{}/{}.png'.format(OUTPUT_DIR, img_id), parsing_[0,:,:,0])
+        # save the numpy-array probability map to a file, so we can use it later
+        fname = os.path.join(args.output_directory, f"{img_id}_pmap.npy")
+        np.save(fname, seg_pmap)
+        print(fname)
+
+
+        # msk = decode_labels(parsing_, num_classes=N_CLASSES)
+        # parsing_im = Image.fromarray(msk[0])
+        # parsing_im.save('{}/{}_vis.png'.format(args.output_directory, img_id))
+        # cv2.imwrite('{}/{}.png'.format(args.output_directory, img_id), parsing_[0,:,:,0])
 
     coord.request_stop()
     coord.join(threads)
