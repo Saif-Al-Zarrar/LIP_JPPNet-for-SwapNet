@@ -22,7 +22,8 @@ label_colours = [(0,0,0)
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
     
 def decode_labels(mask, num_images=1, num_classes=20):
-    """Decode batch of segmentation masks.
+    """Decode batch of segmentation masks. 
+    AJ comment: Converts the tensor into a RGB image.
     
     Args:
       mask: result of inference after taking argmax.
@@ -37,12 +38,14 @@ def decode_labels(mask, num_images=1, num_classes=20):
     for i in range(num_images):
       img = Image.new('RGB', (len(mask[i, 0]), len(mask[i])))
       pixels = img.load()
+      # AJ: this enumerates the "rows" of the image (I think)
       for j_, j in enumerate(mask[i, :, :, 0]):
           for k_, k in enumerate(j):
               if k < n_classes:
                   pixels[k_,j_] = label_colours[k]
       outputs[i] = np.array(img)
     return outputs
+  
 
 def prepare_label(input_batch, new_size, one_hot=True):
     """Resize masks and perform one-hot encoding.
