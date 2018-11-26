@@ -155,7 +155,7 @@ def save_lip_images(image_path, samples, out_dir):
     img_split = image_path.split('/')
     img_id = img_split[-1][:-4]
     with open('{}/{}.txt'.format(out_dir, img_id), 'w') as f:
-        for p in xrange(image.shape[2]):
+        for p in range(image.shape[2]):
             channel_ = image[:,:,p]
             if channel_.shape[0] != rows or channel_.shape[1] != cols:
                 print ('sizes do not match...')
