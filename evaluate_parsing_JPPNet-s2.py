@@ -165,22 +165,17 @@ def main():
     # Iterate over training steps.
     num_steps = args.steps if args.steps else len(image_list) # added by AJ
     os.makedirs(args.output_directory, exist_ok=True)
-    for step in range(num_steps):
-        print('step {:d}'.format(step))
-        print(image_list[step], end=" ==> ")
+    t = tqdm(range(num_steps), units="img")
+    for step in t:
+        img_id = os.path.splitext(image_list[step])[0]
+        t.set_description(img_id)
 
         seg_pmap = sess.run(seg_18_prob_map)
-        # print("seg_pmap shape:", seg_pmap.shape)
-        # print("seg_pmap:", seg_pmap)
-
-        img_split = image_list[step].split('/')
-        img_id = img_split[-1][:-4]
+        seg_pmap[seg_pmap < 0.05] = 0
 
         # save the numpy-array probability map to a file, so we can use it later
-        fname = os.path.join(args.output_directory, f"{img_id}_pmap.npy")
+        fname = os.path.join(args.output_directory, f"{img_id}.npy")
         np.save(fname, seg_pmap)
-        print(fname)
-
 
         # msk = decode_labels(parsing_, num_classes=N_CLASSES)
         # parsing_im = Image.fromarray(msk[0])
