@@ -8,7 +8,6 @@ import scipy.misc
 from tqdm import tqdm
 import cv2
 from PIL import Image
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 import tensorflow as tf
 import numpy as np
@@ -35,10 +34,12 @@ def main():
     parser.add_argument("-o", "--output_directory", help="Directory containing images.", default=OUTPUT_DIR)
     parser.add_argument("-a", "--all_steps", action="store_true", help="Run all images instead of number of steps")
     parser.add_argument("-s", "--steps", type=int, help="Number of steps to run, instead of the whole directory")
+    parser.add_argument("--gpu", default="0", help="GPU to use")
 
     args = parser.parse_args()
 
 
+    os.environ["CUDA_VISIBLE_DEVICES"]=args.gpu
 
     """Create the model and start the evaluation process."""
     
