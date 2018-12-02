@@ -127,12 +127,6 @@ def main():
     raw_output_all = tf.reduce_mean(tf.stack([head_output, tail_output_rev]), axis=0)
     before_argmax = tf.expand_dims(raw_output_all, dim=0)
 
-    # take out the background channel
-    seg_18 = before_argmax[:, :, :, 1:]
-    # convert to probability maps
-    seg_18_prob_map = tf.nn.softmax(seg_18, axis=3)
-
-
     # AJ: take the argmax of the channel dimension, to determine which clothing 
     # label has the highest probabilitye
     raw_output_all = tf.argmax(before_argmax, dimension=3)
@@ -170,17 +164,17 @@ def main():
         img_id = os.path.splitext(image_list[step])[0]
         t.set_description(img_id)
 
-        seg_pmap = sess.run(seg_18_prob_map)
-        seg_pmap[seg_pmap < 0.05] = 0
+        parsing_ = sess.run(pred_all)
 
         # save the numpy-array probability map to a file, so we can use it later
-        fname = os.path.join(args.output_directory, f"{img_id}.npy")
-        np.save(fname, seg_pmap)
+        # fname = os.path.join(args.output_directory, f"{img_id}.npy")
+        # np.save(fname, seg_pmap)
 
-        # msk = decode_labels(parsing_, num_classes=N_CLASSES)
-        # parsing_im = Image.fromarray(msk[0])
-        # parsing_im.save('{}/{}_vis.png'.format(args.output_directory, img_id))
-        # cv2.imwrite('{}/{}.png'.format(args.output_directory, img_id), parsing_[0,:,:,0])
+        msk = decode_labels(parsing_, num_classes=N_CLASSES)
+        parsing_im = Image.fromarray(msk[0])
+        os.path.join(args.output_directory, img_id + "_vis.png")
+        parsing_im.save(os.path.join(args.output_directory, img_id + ".png"))
+        cv2.imwrite(os.path.join(args.output_directory, img_id + "_1channel.png"), parsing_[0,:,:,0])
 
     coord.request_stop()
     coord.join(threads)
