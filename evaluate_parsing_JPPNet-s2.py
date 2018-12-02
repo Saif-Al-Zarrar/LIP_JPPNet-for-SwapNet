@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import scipy.misc
+from tqdm import tqdm
 import cv2
 from PIL import Image
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
@@ -159,9 +160,9 @@ def main():
     # Iterate over training steps.
     num_steps = args.steps if args.steps else len(image_list) # added by AJ
     os.makedirs(args.output_directory, exist_ok=True)
-    t = tqdm(range(num_steps), units="img")
+    t = tqdm(range(num_steps), unit="img")
     for step in t:
-        img_id = os.path.splitext(image_list[step])[0]
+        img_id = os.path.splitext(os.path.basename(image_list[step]))[0]
         t.set_description(img_id)
 
         parsing_ = sess.run(pred_all)
