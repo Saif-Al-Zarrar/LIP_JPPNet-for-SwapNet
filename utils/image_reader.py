@@ -89,7 +89,7 @@ def read_labeled_image_list(data_dir, data_list):
             image, mask = line.strip("\n").split(' ')
         except ValueError: # Adhoc for test.
             image = line.strip("\n")
-        images.append(data_dir + image)
+        images.append(os.path.join(data_dir, image))
     return images
 
 def read_images_from_disk(input_queue, input_size, random_scale, random_mirror): # optional pre-processing arguments

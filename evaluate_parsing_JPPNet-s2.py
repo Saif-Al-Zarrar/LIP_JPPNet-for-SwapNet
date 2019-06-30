@@ -1,6 +1,11 @@
-from __future__ import print_function
+from tqdm import tqdm
 import argparse
 from datetime import datetime
+
+# for debugging
+import code
+
+
 import os
 import sys
 import time
@@ -34,6 +39,7 @@ def main():
     parser.add_argument("-o", "--output_directory", help="Directory containing images.", default=OUTPUT_DIR)
     parser.add_argument("-a", "--all_steps", action="store_true", help="Run all images instead of number of steps")
     parser.add_argument("-s", "--steps", type=int, help="Number of steps to run, instead of the whole directory")
+    parser.add_argument("-v", "--visualize", type=int, help="Whether to include segmentation visualizations")
 
     args = parser.parse_args()
 
@@ -125,19 +131,26 @@ def main():
 
     
     raw_output_all = tf.reduce_mean(tf.stack([head_output, tail_output_rev]), axis=0)
+    # expand_dims to the beginning for the "batch" dimension
     before_argmax = tf.expand_dims(raw_output_all, dim=0)
+    before_glasses = tf.slice(before_argmax, [0,0,0,0], [-1, -1, -1, 4])
+    after_glasses = tf.slice(before_argmax, [0,0,0,5], [-1, -1, -1, -1])
+    # this is now a 19-channel tensor
+    without_glasses = tf.concat((before_glasses, after_glasses), axis=3)
 
-    # take out the background channel
-    seg_18 = before_argmax[:, :, :, 1:]
-    # convert to probability maps
-    seg_18_prob_map = tf.nn.softmax(seg_18, axis=3)
+    # # take out the background channel
+    # seg_18 = before_argmax[:, :, :, 1:]
+    # # convert to probability maps
+    # seg_18_pmap = tf.nn.softmax(seg_18, axis=3)
+    # # keep only the top 3 pmaps, because assume don't need more boundaries  than the top 3
+    # seg_18_pmap_thin =
 
 
     # AJ: take the argmax of the channel dimension, to determine which clothing 
     # label has the highest probabilitye
-    raw_output_all = tf.argmax(before_argmax, dimension=3)
-    # AJ: add an extra dim just before the last one. not sure why 
-    pred_all = tf.expand_dims(raw_output_all, dim=3) # Create 4-d tensor.
+    argmaxed = tf.argmax(without_glasses, dimension=3)
+    # argmax removed dim3, so add it back. Creates a 4d tensor, to make it batch x height x width x color
+    pred_all = tf.expand_dims(argmaxed, dim=3)
 
     # Which variables to load.
     restore_var = tf.global_variables()
@@ -165,22 +178,24 @@ def main():
     # Iterate over training steps.
     num_steps = args.steps if args.steps else len(image_list) # added by AJ
     os.makedirs(args.output_directory, exist_ok=True)
-    t = tqdm(range(num_steps), units="img")
+    t = tqdm(range(num_steps), unit="img")
     for step in t:
         img_id = os.path.splitext(image_list[step])[0]
         t.set_description(img_id)
 
-        seg_pmap = sess.run(seg_18_prob_map)
-        seg_pmap[seg_pmap < 0.05] = 0
+        out = sess.run(pred_all)
+
+        # seg_pmap = sess.run(seg_18_prob_map)
+        # seg_pmap[seg_pmap < 0.05] = 0
 
         # save the numpy-array probability map to a file, so we can use it later
         fname = os.path.join(args.output_directory, f"{img_id}.npy")
-        np.save(fname, seg_pmap)
+        np.save(fname, out)
 
-        # msk = decode_labels(parsing_, num_classes=N_CLASSES)
-        # parsing_im = Image.fromarray(msk[0])
-        # parsing_im.save('{}/{}_vis.png'.format(args.output_directory, img_id))
-        # cv2.imwrite('{}/{}.png'.format(args.output_directory, img_id), parsing_[0,:,:,0])
+        if args.visualize:
+            msk = decode_labels(out)
+            parsing_im = Image.fromarray(msk[0])
+            parsing_im.save('{}/{}_vis.png'.format(args.output_directory, img_id))
 
     coord.request_stop()
     coord.join(threads)
@@ -189,4 +204,3 @@ if __name__ == '__main__':
     main()
 
 
-##############################################################333

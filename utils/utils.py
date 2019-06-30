@@ -18,10 +18,18 @@ label_colours = [(0,0,0)
                 # 11=Scarf, 12=Skirt, 13=Face, 14=LeftArm, 15=RightArm
                 ,(85,255,170),(170,255,85),(255,255,0),(255,170,0)]
                 # 16=LeftLeg, 17=RightLeg, 18=LeftShoe, 19=RightShoe
+
+
+# take out sunglasses
+label_colours = label_colours[:4] + label_colours[5:]
+n_classes = 19
+
+
+
 # image mean
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
     
-def decode_labels(mask, num_images=1, num_classes=20):
+def decode_labels(mask, num_images=1, num_classes=n_classes):
     """Decode batch of segmentation masks. 
     AJ comment: Converts the tensor into a RGB image.
     
