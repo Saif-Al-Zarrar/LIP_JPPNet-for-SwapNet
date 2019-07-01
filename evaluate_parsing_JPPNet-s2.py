@@ -23,7 +23,6 @@ from LIP_model import *
 import argparse
 
 N_CLASSES = 20
-INPUT_SIZE = (256, 256)
 # DATA_DIRECTORY = './datasets/examples'
 # DATA_LIST_PATH = './datasets/examples/list/val.txt'
 DATA_DIRECTORY = './datasets/outfit-transfer'
@@ -38,6 +37,7 @@ def main():
     parser.add_argument("-o", "--output_directory", help="Directory containing images.", default=OUTPUT_DIR)
     parser.add_argument("-a", "--all_steps", action="store_true", help="Run all images instead of number of steps")
     parser.add_argument("-s", "--steps", type=int, help="Number of steps to run, instead of the whole directory")
+    parser.add_argument("--size", type=int, help="Input size")
     parser.add_argument("-v", "--visualize_step", type=int, help="How often to visualize")
 
     args = parser.parse_args()
@@ -48,6 +48,7 @@ def main():
 
     # Create queue coordinator.
     coord = tf.train.Coordinator()
+    INPUT_SIZE = (args.size, args.size)
     h, w = INPUT_SIZE
     # Load reader.
     with tf.name_scope("create_inputs"):
