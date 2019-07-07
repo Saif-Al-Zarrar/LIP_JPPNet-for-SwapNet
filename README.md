@@ -1,3 +1,9 @@
+## For Andrew Project
+Run this
+```
+python evaluate_parsing_JPPNet-s2.py -d path/to/texture -l path/to/list.txt -o path/to/clothing
+```
+
 ## Joint Body Parsing & Pose Estimation Network (JPPNet)
 Xiaodan Liang, Ke Gong, Xiaohui Shen, and Liang Lin, "Look into Person: Joint Body Parsing & Pose Estimation Network and A New Benchmark", T-PAMI 2018.
 
