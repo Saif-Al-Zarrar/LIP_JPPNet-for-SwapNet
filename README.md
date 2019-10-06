@@ -1,4 +1,4 @@
-## For Andrew Project
+## For SwapNet
 Run this
 ```
 python evaluate_parsing_JPPNet-s2.py -d path/to/texture -l path/to/list.txt -o path/to/clothing
