@@ -1,6 +1,12 @@
 ## For SwapNet
-Run this
+Create a `list.txt` file containing all the images to process. This can be done with the GNU `find` command:
+
+```bash
+find path/to/input/folder -name '*.jpg' -o -name '*.png' > list.txt
 ```
+
+Then run this to get the clothing segmentations
+```bash
 python evaluate_parsing_JPPNet-s2.py -d path/to/texture -l path/to/list.txt -o path/to/clothing
 ```
 
